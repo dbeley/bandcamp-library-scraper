@@ -23,5 +23,5 @@ Fields extracted:
 - Save the page in html in the same folder as this script
 
 ```
-python bandcamp-scraper.py -f bandcamp-wishlist-export.html
+python bandcamp-wishlist-scraper.py -f bandcamp-wishlist-export.html
 ```
