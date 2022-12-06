@@ -1,6 +1,6 @@
-# bandcamp-wishlist-scraper
+# bandcamp-library-scraper
 
-Export your bandcamp data into a csv file.
+Export your bandcamp library into a csv file.
 
 This script does not download audio files, only metadata.
 
@@ -21,10 +21,10 @@ It can extract any of those data:
 Note: you can load all the different tabs at once in order to have all the information on the same file
 
 ```
-python bandcamp-wishlist-scraper.py -f bandcamp-wishlist-export.html -t collection
-python bandcamp-wishlist-scraper.py -f bandcamp-wishlist-export.html -t wishlist
-python bandcamp-wishlist-scraper.py -f bandcamp-wishlist-export.html -t artists
-python bandcamp-wishlist-scraper.py -f bandcamp-wishlist-export.html -t full_discography
+python bandcamp-library-scraper.py -f bandcamp-library-export.html -t collection
+python bandcamp-library-scraper.py -f bandcamp-library-export.html -t wishlist
+python bandcamp-library-scraper.py -f bandcamp-library-export.html -t artists
+python bandcamp-library-scraper.py -f bandcamp-library-export.html -t full_discography
 ```
 
 ## Dependencies
@@ -37,10 +37,10 @@ python bandcamp-wishlist-scraper.py -f bandcamp-wishlist-export.html -t full_dis
 ## Installation
 
 ```
-git clone https://github.com/dbeley/bandcamp-wishlist-scraper
-cd bandcamp-wishlist-scraper
+git clone https://github.com/dbeley/bandcamp-library-scraper
+cd bandcamp-library-scraper
 pip install -r requirements.txt
-python bandcamp-wishlist-scraper.py -h
+python bandcamp-library-scraper.py -h
 ```
 
 ## Fields extracted
