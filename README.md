@@ -9,7 +9,7 @@ It can extract any of those data:
 - collection (all the albums you own)
 - wishlist (all the albums in your wishlist)
 - artists (basic information about the artists you follow)
-- full_discography (all the albums from all the artists you follow - might take a long time to extract)
+- discography (all the albums from all the artists you follow - might take a long time to extract)
 
 # Usage
 
@@ -24,7 +24,7 @@ Note: you can load all the different tabs at once in order to have all the infor
 python bandcamp-library-scraper.py -f bandcamp-library-export.html -t collection
 python bandcamp-library-scraper.py -f bandcamp-library-export.html -t wishlist
 python bandcamp-library-scraper.py -f bandcamp-library-export.html -t artists
-python bandcamp-library-scraper.py -f bandcamp-library-export.html -t full_discography
+python bandcamp-library-scraper.py -f bandcamp-library-export.html -t discography
 ```
 
 ## Dependencies
@@ -45,13 +45,14 @@ python bandcamp-library-scraper.py -h
 
 ## Fields extracted
 
-### collection / wishlist / full_discography
+### collection / wishlist / discography
 
 - artist name
+- alternate artist (only for discography)
 - album name
 - number of collections in (only for wishlist and collection)
-- price for the digital release (only for wishlist and full_discography)
-- currency for the digital release (only for wishlist and full_discography)
+- price for the digital release (only for wishlist and discography)
+- currency for the digital release (only for wishlist and discography)
 
 ### artists
 

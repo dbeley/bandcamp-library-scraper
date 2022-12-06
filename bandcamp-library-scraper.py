@@ -124,10 +124,23 @@ def extract_discography(artist):
             .find("ol", {"id": "music-grid"})
             .find_all("li", {"class": "music-grid-item"})
         ):
+            album_element = item.find("p", {"class": "title"})
+            album_name = album_element.text.strip()
+            alternate_artist = None
+            if alternate_element := album_element.find(
+                "span", {"class": "artist-override"}
+            ):
+                logger.debug(
+                    f"Trying to parse alternate artist name in {album_element}"
+                )
+                album_name = album_name.split("\n")[0]
+                alternate_artist = alternate_element.text.strip()
+                logger.debug(f"Found {alternate_artist}")
             list_albums.append(
                 {
                     "artist": artist["name"],
-                    "name": item.find("p", {"class": "title"}).text.strip(),
+                    "alternate_artist": alternate_artist,
+                    "name": album_name,
                     "url": artist["url"] + item.find("a")["href"],
                 }
             )
@@ -140,10 +153,10 @@ def extract_discography(artist):
 
 def export_albums_to_csv(list_items, filename: str):
     with open(filename, "w") as f:
-        f.write("artist;name;url;collected;price;currency;\n")
+        f.write("artist;alternate_artist;name;url;collected;price;currency;\n")
         for i in list_items:
             f.write(
-                f'"{i.get("artist")}";"{i.get("name")}";{i.get("url")};{i.get("collected")};{i.get("price")};{i.get("currency")};\n'
+                f'"{i.get("artist")}";"{i.get("alternate_artist")}";"{i.get("name")}";{i.get("url")};{i.get("collected")};{i.get("price")};{i.get("currency")};\n'
             )
     logger.debug("Export finished successfully.")
 
@@ -175,19 +188,17 @@ def main():
         logger.info(f"Extracting infos for {len(list_artists)} followed artists.")
         export_filename = f"Export_bandcamp_artists_{int(time.time())}.csv"
         export_artists_to_csv(list_artists, export_filename)
-        breakpoint()
-    elif args.type == "full_discography":
+    elif args.type == "discography":
         list_artists = extract_following(soup)
         logger.info(
             f"Extracting discography infos for {len(list_artists)} followed artists."
         )
-        export_filename = f"Export_bandcamp_full_discography_{int(time.time())}.csv"
+        export_filename = f"Export_bandcamp_discography_{int(time.time())}.csv"
 
         list_albums_with_price = [
             extract_discography(artist) for artist in list_artists
         ]
         export_albums_to_csv(list_albums_with_price, export_filename)
-        breakpoint()
     elif args.type == "collection":
         list_albums = extract_collection(soup)
         logger.info(f"Extracting infos for {len(list_albums)} albums in collection.")
@@ -195,7 +206,7 @@ def main():
         export_albums_to_csv(list_albums, export_filename)
     else:
         logger.warning(
-            f"Type {args.type} is not supported. Choose one of wishlist, artists, full_discography or collection."
+            f"Type {args.type} is not supported. Choose one of wishlist, artists, discography or collection."
         )
 
 
@@ -221,7 +232,7 @@ def parse_args():
     parser.add_argument(
         "--type",
         "-t",
-        help="Type of data to extract (choices: wishlist, artists, collection, full_discography. default: wishlist)",
+        help="Type of data to extract (choices: wishlist, artists, collection, discography. default: wishlist)",
         type=str,
         default="wishlist",
     )
