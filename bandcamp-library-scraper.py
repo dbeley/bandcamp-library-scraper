@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import time
 import argparse
 import logging
+import itertools
 
 logger = logging.getLogger()
 
@@ -149,6 +150,7 @@ def extract_discography(artist):
         logger.warning(
             f"Couldn't extract informations for artist {artist['name']}: {e}"
         )
+        return []
 
 
 def export_albums_to_csv(list_items, filename: str):
@@ -198,7 +200,10 @@ def main():
         list_albums_with_price = [
             extract_discography(artist) for artist in list_artists
         ]
-        export_albums_to_csv(list_albums_with_price, export_filename)
+        flattened_albums_list = list(
+            itertools.chain.from_iterable(list_albums_with_price)
+        )
+        export_albums_to_csv(flattened_albums_list, export_filename)
     elif args.type == "collection":
         list_albums = extract_collection(soup)
         logger.info(f"Extracting infos for {len(list_albums)} albums in collection.")
