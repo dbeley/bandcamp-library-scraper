@@ -4,6 +4,7 @@ import time
 import argparse
 import logging
 import itertools
+import csv
 
 logger = logging.getLogger()
 
@@ -154,22 +155,13 @@ def extract_discography(artist):
         return []
 
 
-def export_albums_to_csv(list_items, filename: str):
-    with open(filename, "w") as f:
-        f.write("artist;alternate_artist;name;url;collected;price;currency;\n")
-        for i in list_items:
-            f.write(
-                f'"{i.get("artist")}";"{i.get("alternate_artist")}";"{i.get("name")}";{i.get("url")};{i.get("collected")};{i.get("price")};{i.get("currency")};\n'
-            )
-    logger.debug("Export finished successfully.")
-
-
-def export_artists_to_csv(list_items, filename: str):
-    with open(filename, "w") as f:
-        f.write("name;url;location;\n")
-        for i in list_items:
-            f.write(f"{i.get('name')};{i.get('url')};{i.get('location')};\n")
-    logger.debug("Export finished successfully.")
+def export_to_csv(list_items, filename: str):
+    with open(filename, "w", encoding="utf8", newline="") as output_file:
+        fc = csv.DictWriter(
+            output_file, fieldnames=set().union(*(d.keys() for d in list_items))
+        )
+        fc.writeheader()
+        fc.writerows(list_items)
 
 
 def main():
@@ -185,12 +177,12 @@ def main():
         logger.debug(list_wishlist_with_price)
 
         export_filename = f"export_bandcamp_wishlist_{int(time.time())}.csv"
-        export_albums_to_csv(list_wishlist_with_price, export_filename)
+        export_to_csv(list_wishlist_with_price, export_filename)
     elif args.type == "artists":
         list_artists = extract_following(soup)
         logger.info(f"Extracting infos for {len(list_artists)} followed artists.")
         export_filename = f"export_bandcamp_artists_{int(time.time())}.csv"
-        export_artists_to_csv(list_artists, export_filename)
+        export_to_csv(list_artists, export_filename)
     elif args.type == "discography":
         list_artists = extract_following(soup)
         logger.info(
@@ -204,12 +196,12 @@ def main():
         flattened_albums_list = list(
             itertools.chain.from_iterable(list_albums_with_price)
         )
-        export_albums_to_csv(flattened_albums_list, export_filename)
+        export_to_csv(flattened_albums_list, export_filename)
     elif args.type == "collection":
         list_albums = extract_collection(soup)
         logger.info(f"Extracting infos for {len(list_albums)} albums in collection.")
         export_filename = f"export_bandcamp_collection_{int(time.time())}.csv"
-        export_albums_to_csv(list_albums, export_filename)
+        export_to_csv(list_albums, export_filename)
     else:
         logger.warning(
             f"Type {args.type} is not supported. Choose one of wishlist, artists, discography or collection."
@@ -218,7 +210,7 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Convert bandcamp collection into a CSV file."
+        description="Export your bandcamp collection into a CSV file."
     )
     parser.add_argument(
         "--debug",
