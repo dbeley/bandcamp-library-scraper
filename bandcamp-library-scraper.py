@@ -192,6 +192,7 @@ def main():
         export_filename = f"export_bandcamp_artists_{int(time.time())}.csv"
         export_artists_to_csv(list_artists, export_filename)
     elif args.type == "discography":
+        list_artists = extract_following(soup)
         logger.info(
             f"Extracting discography infos for {len(list_artists)} followed artists."
         )
