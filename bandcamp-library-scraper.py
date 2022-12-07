@@ -137,12 +137,13 @@ def extract_discography(artist):
                 album_name = album_name.split("\n")[0]
                 alternate_artist = alternate_element.text.strip()
                 logger.debug(f"Found {alternate_artist}")
+            url = item.find("a")["href"]
             list_albums.append(
                 {
                     "artist": artist["name"],
                     "alternate_artist": alternate_artist,
                     "name": album_name,
-                    "url": artist["url"] + item.find("a")["href"],
+                    "url": url if url.startswith("https://") else artist["url"] + url,
                 }
             )
         return [extract_album_infos(album) for album in list_albums]
@@ -183,19 +184,18 @@ def main():
         ]
         logger.debug(list_wishlist_with_price)
 
-        export_filename = f"Export_bandcamp_wishlist_{int(time.time())}.csv"
+        export_filename = f"export_bandcamp_wishlist_{int(time.time())}.csv"
         export_albums_to_csv(list_wishlist_with_price, export_filename)
     elif args.type == "artists":
         list_artists = extract_following(soup)
         logger.info(f"Extracting infos for {len(list_artists)} followed artists.")
-        export_filename = f"Export_bandcamp_artists_{int(time.time())}.csv"
+        export_filename = f"export_bandcamp_artists_{int(time.time())}.csv"
         export_artists_to_csv(list_artists, export_filename)
     elif args.type == "discography":
-        list_artists = extract_following(soup)
         logger.info(
             f"Extracting discography infos for {len(list_artists)} followed artists."
         )
-        export_filename = f"Export_bandcamp_discography_{int(time.time())}.csv"
+        export_filename = f"export_bandcamp_discography_{int(time.time())}.csv"
 
         list_albums_with_price = [
             extract_discography(artist) for artist in list_artists
@@ -207,7 +207,7 @@ def main():
     elif args.type == "collection":
         list_albums = extract_collection(soup)
         logger.info(f"Extracting infos for {len(list_albums)} albums in collection.")
-        export_filename = f"Export_bandcamp_collection_{int(time.time())}.csv"
+        export_filename = f"export_bandcamp_collection_{int(time.time())}.csv"
         export_albums_to_csv(list_albums, export_filename)
     else:
         logger.warning(
