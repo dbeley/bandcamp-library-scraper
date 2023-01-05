@@ -103,14 +103,33 @@ def extract_album_infos(album):
     soup_album = get_soup(album["url"])
     digital_element = soup_album.find("li", {"class": "buyItem digital"})
     try:
-        first_element = digital_element.find("span", {"base-text-color"}).text[1:]
-        second_element = digital_element.find("span", {"buyItemExtra"}).text
-        album["price"] = first_element
-        album["currency"] = second_element
+        album["price"] = digital_element.find("span", {"base-text-color"}).text[1:]
+        album["currency"] = digital_element.find("span", {"buyItemExtra"}).text
     except Exception as e:
         logger.warning(
-            f"Couldn't extract price for {album.get('artist')} - {album.get('name')}. It might be free or name-your-price."
+            f"Couldn't extract digital price for {album.get('artist')} - {album.get('name')}. It might be free or name-your-price."
         )
+    if soup_album.find("li", {"class": "buyItem package"}):
+        index = 1
+        for package_element in soup_album.find_all("li", {"class": "buyItem package"}):
+            try:
+                type = package_element.find("div", {"merchtype"}).text.strip()
+                if any(item in type for item in ["T-Shirt", "Cassette"]):
+                    album[f"package_{index}_type"] = type
+                    album[f"package_{index}_name"] = package_element.find(
+                        "span", {"buyItemPackageTitle"}
+                    ).text
+                    album[f"package_{index}_price"] = package_element.find(
+                        "span", {"base-text-color"}
+                    ).text[1:]
+                    album[f"package_{index}_currency"] = package_element.find(
+                        "span", {"buyItemExtra"}
+                    ).text
+                    index += 1
+            except Exception as e:
+                logger.warning(
+                    f"Couldn't extract package info for {album.get('artist')} - {album.get('name')}."
+                )
     logger.info(
         f"Finished extracting infos for {album.get('artist')} - {album.get('name')} (price: {album.get('price')} {album.get('currency')})."
     )
@@ -158,7 +177,7 @@ def extract_discography(artist):
 def export_to_csv(list_items, filename: str):
     with open(filename, "w", encoding="utf8", newline="") as output_file:
         fc = csv.DictWriter(
-            output_file, fieldnames=set().union(*(d.keys() for d in list_items))
+            output_file, fieldnames=sorted(set().union(*(d.keys() for d in list_items)))
         )
         fc.writeheader()
         fc.writerows(list_items)
