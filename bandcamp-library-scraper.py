@@ -115,20 +115,20 @@ def extract_album_infos(album):
             try:
                 type = package_element.find("div", {"merchtype"}).text.strip()
                 if any(item in type for item in ["T-Shirt", "Cassette"]):
-                    album[f"package_{index}_type"] = type
-                    album[f"package_{index}_name"] = package_element.find(
+                    album[f"vendibles_{index}_type"] = type
+                    album[f"vendibles_{index}_name"] = package_element.find(
                         "span", {"buyItemPackageTitle"}
                     ).text
-                    album[f"package_{index}_price"] = package_element.find(
+                    album[f"vendibles_{index}_price"] = package_element.find(
                         "span", {"base-text-color"}
                     ).text[1:]
-                    album[f"package_{index}_currency"] = package_element.find(
+                    album[f"vendibles_{index}_currency"] = package_element.find(
                         "span", {"buyItemExtra"}
                     ).text
                     index += 1
             except Exception as e:
                 logger.warning(
-                    f"Couldn't extract package info for {album.get('artist')} - {album.get('name')}."
+                    f"Couldn't extract vendibles info for {album.get('artist')} - {album.get('name')}."
                 )
     logger.info(
         f"Finished extracting infos for {album.get('artist')} - {album.get('name')} (price: {album.get('price')} {album.get('currency')})."
