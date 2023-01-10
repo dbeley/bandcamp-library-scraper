@@ -27,10 +27,10 @@ def extract_wishlist(soup):
         .find_all("li", {"class": "collection-item-container"})
     ):
         album_infos = item.find("a", {"class": "item-link"})
-        collected = None
         album_name = album_infos.find(
             "div", {"class": "collection-item-title"}
         ).text.strip()
+        collected = None
         try:
             collected = (
                 item.find("div", {"class": "collected-by-header"})
@@ -81,6 +81,18 @@ def extract_collection(soup):
         .find_all("li", {"class": "collection-item-container"})
     ):
         album_infos = item.find("div", {"class": "collection-title-details"})
+        collected = None
+        try:
+            collected = (
+                item.find("div", {"class": "collected-by-header"})
+                .find("a")
+                .text.strip()
+                .split(" ")[0]
+            )
+        except Exception as e:
+            logger.warning(
+                f"Couldn't extract number of collections for album {album_name}."
+            )
         list_albums.append(
             {
                 "artist": album_infos.find("div", {"class": "collection-item-title"})
@@ -90,10 +102,7 @@ def extract_collection(soup):
                     "div", {"class": "collection-item-artist"}
                 ).text.strip()[4:],
                 "url": album_infos.find("a", {"class": "item-link"})["href"],
-                "collected": item.find("div", {"class": "collected-by-header"})
-                .find("a")
-                .text.strip()
-                .split(" ")[0],
+                "collected": collected,
             }
         )
     return list_albums
