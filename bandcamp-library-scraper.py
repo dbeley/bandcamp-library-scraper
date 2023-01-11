@@ -119,26 +119,29 @@ def extract_album_infos(album):
             f"Couldn't extract digital price for {album.get('artist')} - {album.get('name')}. It might be free or name-your-price."
         )
     if soup_album.find("li", {"class": "buyItem package"}):
-        index = 1
+        index_tshirt = 1
+        index_cassette = 1
         for package_element in soup_album.find_all("li", {"class": "buyItem package"}):
-            try:
-                type = package_element.find("div", {"merchtype"}).text.strip()
+            if merch_type := package_element.find("div", {"merchtype"}):
+                type = merch_type.text.strip()
                 if any(item in type for item in ["T-Shirt", "Cassette"]):
-                    album[f"vendibles_{index}_type"] = type
-                    album[f"vendibles_{index}_name"] = package_element.find(
-                        "span", {"buyItemPackageTitle"}
-                    ).text
-                    album[f"vendibles_{index}_price"] = package_element.find(
-                        "span", {"base-text-color"}
-                    ).text[1:]
-                    album[f"vendibles_{index}_currency"] = package_element.find(
-                        "span", {"buyItemExtra"}
-                    ).text
-                    index += 1
-            except Exception as e:
-                logger.warning(
-                    f"Couldn't extract vendibles info for {album.get('artist')} - {album.get('name')}."
-                )
+                    name = package_element.find("span", {"buyItemPackageTitle"}).text
+                    price = package_element.find("span", {"base-text-color"}).text[1:]
+                    currency = package_element.find("span", {"buyItemExtra"}).text
+                    if "T-Shirt" in type:
+                        album[f"vendibles_tshirt_{index_tshirt}_type"] = type
+                        album[f"vendibles_tshirt_{index_tshirt}_name"] = name
+                        album[f"vendibles_tshirt_{index_tshirt}_price"] = price
+                        album[f"vendibles_tshirt_{index_tshirt}_currency"] = currency
+                        index_tshirt += 1
+                    elif "Cassette" in type:
+                        album[f"vendibles_cassette_{index_cassette}_type"] = type
+                        album[f"vendibles_cassette_{index_cassette}_name"] = name
+                        album[f"vendibles_cassette_{index_cassette}_price"] = price
+                        album[
+                            f"vendibles_cassette_{index_cassette}_currency"
+                        ] = currency
+                        index_cassette += 1
     logger.info(
         f"Finished extracting infos for {album.get('artist')} - {album.get('name')} (price: {album.get('price')} {album.get('currency')})."
     )
