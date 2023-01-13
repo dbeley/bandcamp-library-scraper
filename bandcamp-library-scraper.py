@@ -118,13 +118,16 @@ def extract_album_infos(album):
         logger.warning(
             f"Couldn't extract digital price for {album.get('artist')} - {album.get('name')}. It might be free or name-your-price."
         )
-    if soup_album.find("li", {"class": "buyItem package"}):
-        index_tshirt = 1
-        index_cassette = 1
-        for package_element in soup_album.find_all("li", {"class": "buyItem package"}):
-            if merch_type := package_element.find("div", {"merchtype"}):
-                type = merch_type.text.strip()
-                if any(item in type for item in ["T-Shirt", "Cassette"]):
+
+    index_tshirt = 1
+    index_cassette = 1
+    for package_element in soup_album.find_all("li", {"class": "buyItem"}):
+        if merch_type := package_element.find("div", {"merchtype"}):
+            type = merch_type.text.strip()
+            if any(item in type for item in ["T-Shirt", "Cassette"]):
+                if package_element.find("h4", {"class": "notable"}):
+                    album[f"vendibles_sold_out"] = True
+                else:
                     name = package_element.find("span", {"buyItemPackageTitle"}).text
                     price = package_element.find("span", {"base-text-color"}).text[1:]
                     currency = package_element.find("span", {"buyItemExtra"}).text
@@ -141,6 +144,10 @@ def extract_album_infos(album):
                         album[
                             f"vendibles_cassette_{index_cassette}_currency"
                         ] = currency
+                        if remaining := package_element.find("span", {"notable"}):
+                            album[
+                                f"vendibles_cassette_{index_cassette}_remaining"
+                            ] = remaining.text.strip().split()[0]
                         index_cassette += 1
     logger.info(
         f"Finished extracting infos for {album.get('artist')} - {album.get('name')} (price: {album.get('price')} {album.get('currency')})."
