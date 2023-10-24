@@ -83,7 +83,7 @@ def extract_collection(soup):
         album_infos = item.find("div", {"class": "collection-title-details"})
         album_name = album_infos.find(
             "div", {"class": "collection-item-artist"}
-        ).text.strip()[4:]
+        ).text.strip()[3:]
         collected = None
         try:
             collected = (
@@ -108,6 +108,28 @@ def extract_collection(soup):
         )
     return list_albums
 
+def get_package_element_data(element):
+    name = element.find("span", {"buyItemPackageTitle"}).text
+    price = element.find("span", {"base-text-color"}).text[1:]
+    currency = element.find("span", {"buyItemExtra"}).text
+    return {
+      "name": name,
+      "price": price,
+      "currency": currency
+      }
+
+
+def get_merch_type(merch_type):
+    if "t-shirt" in merch_type.lower():
+        return "t-shirt"
+    elif "cassette" in merch_type.lower():
+        return "cassette"
+    elif "vinyl" in merch_type.lower():
+        return "vinyl"
+    return None
+
+
+
 
 def extract_album_infos(album):
     soup_album = get_soup(album["url"])
@@ -122,34 +144,35 @@ def extract_album_infos(album):
 
     index_tshirt = 1
     index_cassette = 1
+    index_vinyl = 1
     for package_element in soup_album.find_all("li", {"class": "buyItem"}):
-        if merch_type := package_element.find("div", {"merchtype"}):
-            type = merch_type.text.strip()
-            if any(item in type for item in ["T-Shirt", "Cassette"]):
+        if merch_type_element := package_element.find("div", {"merchtype"}):
+            merch_type = merch_type_element.text.strip()
+            logger.debug("Found merch type %s", merch_type)
+            if any(item in merch_type.lower() for item in ["t-shirt", "cassette", "vinyl"]):
                 if package_element.find("h4", {"class": "notable"}):
                     album[f"vendibles_sold_out"] = True
                 else:
-                    name = package_element.find("span", {"buyItemPackageTitle"}).text
-                    price = package_element.find("span", {"base-text-color"}).text[1:]
-                    currency = package_element.find("span", {"buyItemExtra"}).text
-                    if "T-Shirt" in type:
-                        album[f"vendibles_tshirt_{index_tshirt}_type"] = type
-                        album[f"vendibles_tshirt_{index_tshirt}_name"] = name
-                        album[f"vendibles_tshirt_{index_tshirt}_price"] = price
-                        album[f"vendibles_tshirt_{index_tshirt}_currency"] = currency
-                        index_tshirt += 1
-                    elif "Cassette" in type:
-                        album[f"vendibles_cassette_{index_cassette}_type"] = type
-                        album[f"vendibles_cassette_{index_cassette}_name"] = name
-                        album[f"vendibles_cassette_{index_cassette}_price"] = price
-                        album[
-                            f"vendibles_cassette_{index_cassette}_currency"
-                        ] = currency
+                    element_data = get_package_element_data(package_element)
+                    simple_merch_type = get_merch_type(merch_type)
+                    if simple_merch_type:
+                        if simple_merch_type == "t-shirt":
+                            index = index_tshirt
+                            index_tshirt += 1
+                        elif simple_merch_type == "cassette":
+                            index = index_cassette
+                            index_cassette +=1
+                        else:
+                            index = index_vinyl
+                            index_vinyl +=1
+                        album[f"vendibles_{simple_merch_type}_{index}_type"] = merch_type
+                        album[f"vendibles_{simple_merch_type}_{index}_name"] = element_data.get("name")
+                        album[f"vendibles_{simple_merch_type}_{index}_price"] = element_data.get("price")
+                        album[f"vendibles_{simple_merch_type}_{index}_currency"] = element_data.get("currency")
                         if remaining := package_element.find("span", {"notable"}):
                             album[
-                                f"vendibles_cassette_{index_cassette}_remaining"
+                                f"vendibles_{simple_merch_type}_{index}_remaining"
                             ] = remaining.text.strip().split()[0]
-                        index_cassette += 1
     logger.info(
         f"Finished extracting infos for {album.get('artist')} - {album.get('name')} (price: {album.get('price')} {album.get('currency')})."
     )

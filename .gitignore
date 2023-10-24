@@ -1,3 +1,5 @@
 *.html
 *_fichiers/
+*_files/
 *.csv
+.direnv
