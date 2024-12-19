@@ -5,6 +5,11 @@ import argparse
 import logging
 import itertools
 import csv
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from bs4 import BeautifulSoup
+import time
 
 logger = logging.getLogger()
 
@@ -15,10 +20,12 @@ def read_soup_from_fs(filename: str):
     return BeautifulSoup(content, "html.parser")
 
 
-def get_soup(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return BeautifulSoup(response.content, "lxml")
+def get_soup(driver, url):
+    driver.get(url)
+    time.sleep(1)
+    page_source = driver.page_source
+    soup = BeautifulSoup(page_source, "lxml")
+    return soup
 
 
 def extract_wishlist(soup):
@@ -133,11 +140,11 @@ def get_merch_type(merch_type):
 
 
 
-def extract_album_infos(album):
+def extract_album_infos(driver, album):
     try:
-        soup_album = get_soup(album["url"])
+        soup_album = get_soup(driver, album["url"])
     except Exception as e:
-        logger.warning(f"Couldn't extract information for release {album['artist']} - {album['name']}")
+        logger.warning(f"Couldn't extract information for release {album['artist']} - {album['name']: {e}}")
         return album
     digital_element = soup_album.find("li", {"class": "buyItem digital"})
     try:
@@ -185,8 +192,8 @@ def extract_album_infos(album):
     return album
 
 
-def extract_discography(artist):
-    soup_artist = get_soup(artist["url"] + "music")
+def extract_discography(driver, artist):
+    soup_artist = get_soup(driver, artist["url"] + "music")
     list_albums = []
     try:
         for item in (
@@ -215,7 +222,7 @@ def extract_discography(artist):
                     "url": url if url.startswith("https://") else artist["url"] + url,
                 }
             )
-        return [extract_album_infos(album) for album in list_albums]
+        return [extract_album_infos(driver, album) for album in list_albums]
     except Exception as e:
         logger.warning(
             f"Couldn't extract informations for artist {artist['name']}: {e}"
@@ -231,16 +238,36 @@ def export_to_csv(list_items, filename: str):
         fc.writeheader()
         fc.writerows(list_items)
 
+def init_driver():
+    # Setup Chrome options
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')  # Run in headless mode (no GUI)
+    options.add_argument('--disable-gpu')  # Disable GPU acceleration
+    options.add_argument('--no-sandbox')  # Bypass OS security model (Linux only)
+    options.add_argument('start-maximized')  # Start browser maximized
+    options.add_argument('disable-infobars')  # Disable infobars
+    options.add_argument("--disable-extensions")  # Disable extensions
+    options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
+
+    # Provide the path to the chromedriver executable
+    # service = ChromeService(executable_path='/path/to/chromedriver')
+
+    # Initialize the WebDriver
+    driver = webdriver.Chrome(options=options)
+    return driver
+
 
 def main():
     args = parse_args()
     soup = read_soup_from_fs(args.file)
+    driver = None
     if args.type == "wishlist":
+        driver = init_driver()
         list_wishlist = extract_wishlist(soup)
         logger.info(f"Extracting infos for {len(list_wishlist)} albums in wishlist.")
 
         list_wishlist_with_price = [
-            extract_album_infos(album) for album in list_wishlist
+            extract_album_infos(driver, album) for album in list_wishlist
         ]
         logger.debug(list_wishlist_with_price)
 
@@ -252,6 +279,7 @@ def main():
         export_filename = f"export_bandcamp_artists_{int(time.time())}.csv"
         export_to_csv(list_artists, export_filename)
     elif args.type == "discography":
+        driver = init_driver()
         list_artists = extract_following(soup)
         logger.info(
             f"Extracting discography infos for {len(list_artists)} followed artists."
@@ -259,7 +287,7 @@ def main():
         export_filename = f"export_bandcamp_discography_{int(time.time())}.csv"
 
         list_albums_with_price = [
-            extract_discography(artist) for artist in list_artists
+            extract_discography(driver, artist) for artist in list_artists
         ]
         flattened_albums_list = list(
             itertools.chain.from_iterable(list_albums_with_price)
@@ -274,6 +302,8 @@ def main():
         logger.warning(
             f"Type {args.type} is not supported. Choose one of wishlist, artists, discography or collection."
         )
+    if driver:
+        driver.quit()
 
 
 def parse_args():

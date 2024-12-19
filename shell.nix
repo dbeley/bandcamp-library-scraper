@@ -8,6 +8,9 @@ pkgs.mkShell {
     python3Packages.requests
     python3Packages.beautifulsoup4
     python3Packages.lxml
+    python3Packages.selenium
+    pkgs.chromedriver
+    pkgs.chromium
 
     pre-commit
   ];
