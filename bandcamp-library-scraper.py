@@ -81,9 +81,9 @@ def extract_collection(soup):
         .find_all("li", {"class": "collection-item-container"})
     ):
         album_infos = item.find("div", {"class": "collection-title-details"})
-        album_name = album_infos.find(
+        artist_name = album_infos.find(
             "div", {"class": "collection-item-artist"}
-        ).text.strip()[3:]
+        ).text.strip()[4:]
         collected = None
         try:
             collected = (
@@ -98,10 +98,10 @@ def extract_collection(soup):
             )
         list_albums.append(
             {
-                "artist": album_infos.find("div", {"class": "collection-item-title"})
+                "artist": artist_name,
+                "name": album_infos.find("div", {"class": "collection-item-title"})
                 .text.strip()
                 .split("\n")[0],
-                "name": album_name,
                 "url": album_infos.find("a", {"class": "item-link"})["href"],
                 "collected": collected,
             }
