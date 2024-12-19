@@ -16,7 +16,9 @@ def read_soup_from_fs(filename: str):
 
 
 def get_soup(url):
-    return BeautifulSoup(requests.get(url).content, "lxml")
+    response = requests.get(url)
+    response.raise_for_status()
+    return BeautifulSoup(response.content, "lxml")
 
 
 def extract_wishlist(soup):
@@ -132,7 +134,11 @@ def get_merch_type(merch_type):
 
 
 def extract_album_infos(album):
-    soup_album = get_soup(album["url"])
+    try:
+        soup_album = get_soup(album["url"])
+    except Exception as e:
+        logger.warning(f"Couldn't extract information for release {album['artist']} - {album['name']}")
+        return album
     digital_element = soup_album.find("li", {"class": "buyItem digital"})
     try:
         album["price"] = digital_element.find("span", {"base-text-color"}).text[1:]
