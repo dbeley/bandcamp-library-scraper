@@ -9,7 +9,10 @@ pkgs.mkShell {
     python3Packages.beautifulsoup4
     python3Packages.lxml
 
+    python3Packages.ruff
+
     pre-commit
+    prek
   ];
 
 }

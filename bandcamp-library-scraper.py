@@ -9,6 +9,14 @@ import csv
 logger = logging.getLogger()
 
 
+def parse_artist_name(raw_text: str) -> str:
+    """Trim the 'by ' prefix used by Bandcamp artist labels without chopping the name."""
+    text = raw_text.strip()
+    if text.lower().startswith("by "):
+        return text[3:].strip()
+    return text
+
+
 def read_soup_from_fs(filename: str):
     with open(filename, "r") as f:
         content = f.read()
@@ -40,15 +48,15 @@ def extract_wishlist(soup):
                 .text.strip()
                 .split(" ")[0]
             )
-        except Exception as e:
+        except Exception:
             logger.warning(
                 f"Couldn't extract number of collections for album {album_name}."
             )
         list_albums.append(
             {
-                "artist": album_infos.find(
-                    "div", {"class": "collection-item-artist"}
-                ).text.strip()[4:],
+                "artist": parse_artist_name(
+                    album_infos.find("div", {"class": "collection-item-artist"}).text
+                ),
                 "name": album_name,
                 "url": album_infos["href"],
                 "collected": collected,
@@ -83,9 +91,14 @@ def extract_collection(soup):
         .find_all("li", {"class": "collection-item-container"})
     ):
         album_infos = item.find("div", {"class": "collection-title-details"})
-        artist_name = album_infos.find(
-            "div", {"class": "collection-item-artist"}
-        ).text.strip()[4:]
+        artist_name = parse_artist_name(
+            album_infos.find("div", {"class": "collection-item-artist"}).text
+        )
+        album_name = (
+            album_infos.find("div", {"class": "collection-item-title"})
+            .text.strip()
+            .split("\n")[0]
+        )
         collected = None
         try:
             collected = (
@@ -94,31 +107,26 @@ def extract_collection(soup):
                 .text.strip()
                 .split(" ")[0]
             )
-        except Exception as e:
+        except Exception:
             logger.warning(
                 f"Couldn't extract number of collections for album {album_name}."
             )
         list_albums.append(
             {
                 "artist": artist_name,
-                "name": album_infos.find("div", {"class": "collection-item-title"})
-                .text.strip()
-                .split("\n")[0],
+                "name": album_name,
                 "url": album_infos.find("a", {"class": "item-link"})["href"],
                 "collected": collected,
             }
         )
     return list_albums
 
+
 def get_package_element_data(element):
     name = element.find("span", {"buyItemPackageTitle"}).text
     price = element.find("span", {"base-text-color"}).text[1:]
     currency = element.find("span", {"buyItemExtra"}).text
-    return {
-      "name": name,
-      "price": price,
-      "currency": currency
-      }
+    return {"name": name, "price": price, "currency": currency}
 
 
 def get_merch_type(merch_type):
@@ -131,19 +139,19 @@ def get_merch_type(merch_type):
     return None
 
 
-
-
 def extract_album_infos(album):
     try:
         soup_album = get_soup(album["url"])
-    except Exception as e:
-        logger.warning(f"Couldn't extract information for release {album['artist']} - {album['name']}")
+    except Exception:
+        logger.warning(
+            f"Couldn't extract information for release {album['artist']} - {album['name']}"
+        )
         return album
     digital_element = soup_album.find("li", {"class": "buyItem digital"})
     try:
         album["price"] = digital_element.find("span", {"base-text-color"}).text[1:]
         album["currency"] = digital_element.find("span", {"buyItemExtra"}).text
-    except Exception as e:
+    except Exception:
         logger.warning(
             f"Couldn't extract digital price for {album.get('artist')} - {album.get('name')}. It might be free or name-your-price."
         )
@@ -155,9 +163,11 @@ def extract_album_infos(album):
         if merch_type_element := package_element.find("div", {"merchtype"}):
             merch_type = merch_type_element.text.strip()
             logger.debug("Found merch type %s", merch_type)
-            if any(item in merch_type.lower() for item in ["t-shirt", "cassette", "vinyl"]):
+            if any(
+                item in merch_type.lower() for item in ["t-shirt", "cassette", "vinyl"]
+            ):
                 if package_element.find("h4", {"class": "notable"}):
-                    album[f"vendibles_sold_out"] = True
+                    album["vendibles_sold_out"] = True
                 else:
                     element_data = get_package_element_data(package_element)
                     simple_merch_type = get_merch_type(merch_type)
@@ -167,14 +177,22 @@ def extract_album_infos(album):
                             index_tshirt += 1
                         elif simple_merch_type == "cassette":
                             index = index_cassette
-                            index_cassette +=1
+                            index_cassette += 1
                         else:
                             index = index_vinyl
-                            index_vinyl +=1
-                        album[f"vendibles_{simple_merch_type}_{index}_type"] = merch_type
-                        album[f"vendibles_{simple_merch_type}_{index}_name"] = element_data.get("name")
-                        album[f"vendibles_{simple_merch_type}_{index}_price"] = element_data.get("price")
-                        album[f"vendibles_{simple_merch_type}_{index}_currency"] = element_data.get("currency")
+                            index_vinyl += 1
+                        album[f"vendibles_{simple_merch_type}_{index}_type"] = (
+                            merch_type
+                        )
+                        album[f"vendibles_{simple_merch_type}_{index}_name"] = (
+                            element_data.get("name")
+                        )
+                        album[f"vendibles_{simple_merch_type}_{index}_price"] = (
+                            element_data.get("price")
+                        )
+                        album[f"vendibles_{simple_merch_type}_{index}_currency"] = (
+                            element_data.get("currency")
+                        )
                         if remaining := package_element.find("span", {"notable"}):
                             album[
                                 f"vendibles_{simple_merch_type}_{index}_remaining"
