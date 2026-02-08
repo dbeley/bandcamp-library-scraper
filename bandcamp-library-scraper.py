@@ -14,6 +14,8 @@ def parse_artist_name(raw_text: str) -> str:
     text = raw_text.strip()
     if text.lower().startswith("by "):
         return text[3:].strip()
+    if text.lower().startswith("par "):
+        return text[4:].strip()
     return text
 
 
